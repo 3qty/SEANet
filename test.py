@@ -14,9 +14,8 @@ import ntpath
 
 def get_val_opt():
     opt = ValOptions().parse()
-
-    opt.num_threads = 1  # test code only supports num_threads = 1
-    opt.batch_size = 4  # test code only supports batch_size = 1
+    # validation code only supports batch_size = 1. If validation image are in same size, it can larger than 1
+    opt.batch_size = 1
     opt.serial_batches = True  # no shuffle
     opt.no_flip = True  # no flip
     opt.display_id = -1  # no visdom display
@@ -25,30 +24,18 @@ def get_val_opt():
         os.makedirs(result_root)
     return opt
 
-def initial_dataset(opt,set_name):
-    gt_prefix, gt_form = get_gt_info(set_name)
-    opt.dataroot = "./dataroot/rain" + set_name + "/test/"
-    data_loader = CreateDataLoader(opt)
-    dataset = data_loader.load_data()
-    print("Current test set is "+set_name+" size:"+str(len(dataset)))
-    record_fn = os.path.join(opt.results_dir, opt.name, "evaluation_" + set_name + ".txt")
-    return gt_prefix,gt_form,dataset,record_fn
+def get_test_opt():
+    opt = TestOptions().parse()
 
-def save_test_image(dataset,set_name,opt,model,epoch):
-    opt.epoch = epoch
-    model.load_networks(opt.epoch)
-
-    web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s_rain%s_1itr' % (opt.phase, opt.epoch,set_name))
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
-    for i, data in enumerate(dataset):
-
-        model.set_input(data)
-        model.test()
-        visuals = model.get_current_visuals()
-        img_path = model.get_image_paths()
-        save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio)
-
-    webpage.save()
+    opt.num_threads = 1  # test code only supports num_threads = 1
+    opt.batch_size = 1   # test code only supports batch_size = 1.
+    opt.serial_batches = True  # no shuffle
+    opt.no_flip = True  # no flip
+    opt.display_id = -1  # no visdom display
+    result_root = os.path.join(opt.results_dir, opt.name)
+    if not os.path.exists(result_root):
+        os.makedirs(result_root)
+    return opt
 
 def model_test_val(opt,dataset,model,epoch):
     def process_img(img, h, w):
@@ -150,14 +137,15 @@ def model_test_val(opt,dataset,model,epoch):
                 for i in range(batch_size):
                     plt.imsave(os.path.join(img_dir, prefix + '_' + val_name + ".png"), val_out[i])
         return 0.0,0.0
-def eval_in_training(model,epoch,isTest=False):
-    opt = get_val_opt()
-    #save image result of validation set in last iteration, otherwise compute ssim and psnr only
-    if epoch == opt.saveimg_epoch:
-        opt.saveimg=True
-
+def eval_test(model,epoch,isTest=False,testOpt=None):
+    if not isTest:
+        opt = get_val_opt()
+        #save image result of validation set in last iteration, otherwise compute ssim and psnr only
+        if epoch >= opt.saveimg_epoch:
+            opt.saveimg=True
+    if isTest:
+        opt=testOpt
     set_name=opt.setname
-    opt.batch_size=1
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     print("Current test set is "+set_name+" size:"+str(len(dataset)))
@@ -166,15 +154,13 @@ def eval_in_training(model,epoch,isTest=False):
     return psnr,ssim
 
 if __name__ == '__main__':
-    opt = get_val_opt()
+    opt = get_test_opt()
+    #change test epoch
+    #opt.epoch = 'latest'
 
-    opt.epoch = 'latest'
-    opt.saveimg = True
-    opt.phase = 'test'
-    opt.isTrain=False
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     model = create_model(opt)
     model.setup(opt)
     model.eval()
-    ssim, psnr = eval_in_training(model, opt.epoch)
+    _, _ = eval_test(model, opt.epoch,isTest=True,testOpt=opt)

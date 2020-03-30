@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
             #evaluate each saved model with eval set
             model.eval()
-            test.eval_in_training(model,epoch)
+            test.eval_test(model,epoch,isTest=False)
             model.set_train()
 
         print('End of epoch %d / %d \t Time Taken: %d sec' %
