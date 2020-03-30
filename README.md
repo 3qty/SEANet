@@ -1,5 +1,8 @@
 # SEANet
 Code of 'Coupled Rain Streak and Background Estimation via Separable Element-wise Attention'
+YINJIE TAN, QIANG WEN, JING QIN, JIANBO JIAO, GUOQIANG HAN,SHENGFENG HE<br/>
+IEEE ACCESS
+
 ## Paper
 [Coupled Rain Streak and Background Estimation via Separable Element-wise Attention](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8963735)
 
